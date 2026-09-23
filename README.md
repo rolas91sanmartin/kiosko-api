@@ -35,7 +35,10 @@ la cuenta `TI_ADMIN`. Publique siempre con HTTPS.
    si faltan la clave API o las credenciales/host/nombre de SQL Server.
    Configure las cuentas administrativas si usará reportes o logs. Configure SMTP
    si necesita correos. Mantenga `SWAGGER_ENABLED=false` salvo que necesite documentación.
-   No agregue secretos como build arguments.
+   No agregue secretos como build arguments. Desactive **Build Variable** para
+   las variables de runtime, especialmente las claves y contraseñas.
+   La etapa de compilación usa `npm ci --include=dev` para disponer del CLI de
+   NestJS incluso si el entorno de construcción recibe `NODE_ENV=production`.
 4. En Persistent Storage agregue un volumen con destino **`/app/data`**.
    Conserva fotos, logs y claves Ed25519. Si usa un bind mount, prepare previamente
    la carpeta del servidor con permisos de escritura para **1000:1000**.
