@@ -1,13 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as bwipjs from 'bwip-js';
 import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { deflateSync } from 'node:zlib';
 import type { Employee, PayrollEnvelopeRow, PayrollPeriod, SignedPayrollTransfer } from './contracts';
 
 const clean = (value: unknown) => String(value ?? '').trim();
 const amount = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : 0;
 const base64url = (value: Buffer | string) => Buffer.from(value).toString('base64url');
+const capacityError = (error: unknown) => error instanceof Error && /bwipp\.pdf417(?:dataTooLong|insufficientCapacity)/.test(error.message);
 
 @Injectable()
 export class PayrollTransferService {
@@ -28,23 +30,34 @@ export class PayrollTransferService {
   }
 
   async create(employee: Employee, period: PayrollPeriod, rows: PayrollEnvelopeRow[]): Promise<SignedPayrollTransfer> {
-    if (!rows.length) throw new Error('El comprobante no contiene información para transferir.');
+    if (!rows.length) throw new BadRequestException('El comprobante no contiene información para transferir.');
     const first = rows[0];
     const envelope = {
       v: 2,
       issuedAt: new Date().toISOString(),
       payroll: { consecutive: period.consecutive, from: period.from, to: period.to, receiptNumber: 1 },
-      employee: { code: clean(first.cod_Empleado || employee.code), name: `${clean(first.nom_empleado)} ${clean(first.ape_empleado)}`.trim() || employee.name, socialSecurityNumber: clean(first.numero_inss), role: clean(first.des_cargo), area: clean(first.des_dependencia), workedDays: amount(first.Dias_laborados) },
+      employee: { code: clean(first.cod_Empleado || employee.code), name: `${clean(first.nom_empleado)} ${clean(first.ape_empleado)}`.trim() || employee.name, socialSecurityNumber: clean(first.numero_inss), role: clean(first.des_cargo), area: clean(first.des_dependencia), workedDays: amount(first.Dias_laborados), cantExtra: amount(first.cantExtra) },
       incomes: rows.filter(row => clean(row.RotDeveng) && amount(row.valor) !== 0).map(row => ({ label: clean(row.RotDeveng), amount: amount(row.valor) })),
       deductions: rows.filter(row => clean(row.RotDeduc) && amount(row.Valoded) !== 0).map(row => ({ label: clean(row.RotDeduc), amount: amount(row.Valoded) })),
       debtBalance: rows.reduce((total, row) => total + amount(row.saldo), 0)
     };
-    const payload = base64url(JSON.stringify(envelope));
+    const json = JSON.stringify(envelope);
     const { privateKey, publicKey, keyId } = this.keys();
-    const signature = sign(null, Buffer.from(payload), privateKey).toString('base64url');
-    const code = `SM2.${keyId}.${payload}.${signature}`;
-    if (Buffer.byteLength(code) > 2600) throw new Error('El comprobante contiene demasiada información para un PDF417 confiable.');
-    const png = await bwipjs.toBuffer({ bcid: 'pdf417', text: code, scale: 3, height: 18, paddingwidth: 10, paddingheight: 10, columns: 10, eclevel: 4 } as never);
-    return { version: 1, algorithm: 'Ed25519', keyId, payload: code, signature, publicKey, barcodeDataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}` };
+    // Preserve SM2 when it fits. SM3 carries the same JSON compressed with zlib;
+    // its distinct prefix lets readers select the decoding without guessing.
+    for (const prefix of ['SM2', 'SM3'] as const) {
+      const payload = base64url(prefix === 'SM2' ? json : deflateSync(json, { level: 9 }));
+      const signature = sign(null, Buffer.from(payload), privateKey).toString('base64url');
+      const code = `${prefix}.${keyId}.${payload}.${signature}`;
+      if (Buffer.byteLength(code) > 2600) continue;
+      try {
+        // Let the encoder choose the column count and enforce real capacity.
+        const png = await bwipjs.toBuffer({ bcid: 'pdf417', text: code, scale: 3, height: 18, paddingwidth: 10, paddingheight: 10, eclevel: 4, fixedeclevel: true } as never);
+        return { version: 1, algorithm: 'Ed25519', keyId, payload: code, signature, publicKey, barcodeDataUrl: `data:image/png;base64,${Buffer.from(png).toString('base64')}` };
+      } catch (error) {
+        if (!capacityError(error)) throw error;
+      }
+    }
+    throw new BadRequestException('El comprobante contiene demasiada información para un solo PDF417, incluso comprimido.');
   }
 }

@@ -100,6 +100,7 @@ export function buildEscPosReceipt(
   write(`CARGO: ${wrap(first.des_cargo, columns)}\n`);
   write(`AREA: ${wrap(first.des_dependencia, columns)}\n`);
   write(`DIAS LABORADOS: ${money(amount(first.Dias_laborados))}\n`);
+  write(`Cant Horas Extras: ${money(amount(first.cantExtra))}\n`);
   write(rule);
 
   command(ESC, 0x45, 0x01); write('INGRESOS\n'); command(ESC, 0x45, 0x00);
@@ -114,7 +115,7 @@ export function buildEscPosReceipt(
   write(pair('SALDO DE DEUDA', money(debt), columns));
   write(rule);
   command(ESC, 0x61, 0x01);
-  write('Documento generado por\nKiosko Electrónico\n');
+  write('Documento generado por\nKiosko Tecnológico\n');
   command(ESC, 0x61, 0x00);
   command(ESC, 0x64, 0x05); // Avanzar cinco líneas.
   if (options.cutPaper) command(GS, 0x56, 0x42, 0x00); // Corte parcial.

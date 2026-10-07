@@ -4,7 +4,7 @@ export interface PayrollPeriod { from: string; to: string; consecutive: number; 
 export interface PayrollEnvelopeRow extends Record<string, unknown> {
   cod_Empleado: number; valor: number | null; RotDeveng: string | null; Valoded: number | null;
   RotDeduc: string | null; saldo: number | null; nom_empleado: string; ape_empleado: string;
-  des_cargo: string; numero_inss: string; des_dependencia: string; Dias_laborados: number;
+  des_cargo: string; numero_inss: string; des_dependencia: string; Dias_laborados: number; cantExtra?: number | null;
   fechaini: string; fechafin: string;
 }
 export interface ReportFilters {

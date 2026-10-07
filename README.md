@@ -75,6 +75,17 @@ Referencia: [despliegue con Dockerfile en Coolify](https://coolify.io/docs/appli
 
 ## Verificación local
 
+### Datos del PDF417
+
+Los comprobantes que caben conservan `SM2.<keyId>.<payload>.<signature>`.
+Cuando exceden la capacidad del símbolo, la API usa
+`SM3.<keyId>.<payload>.<signature>`: el payload es el mismo JSON, comprimido
+con zlib y codificado en base64url. El lector debe verificar la firma Ed25519
+sobre el texto del payload y, para SM3, descomprimir los bytes antes de leer
+el JSON. `employee.cantExtra` contiene la cantidad de horas extras.
+Un lector que solo admita SM1 o SM2 necesita soporte de SM3 para estos sobres.
+Si ni el contenido comprimido cabe, la API responde HTTP 400 con el motivo.
+
 ```sh
 npm ci
 npm run typecheck
