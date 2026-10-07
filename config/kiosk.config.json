@@ -1,0 +1,42 @@
+{
+  "database": {
+    "server": "35.153.218.11",
+    "database": "RRHH",
+    "user": "sa",
+    "password": "S@NM@RT!N2022",
+    "port": 1433,
+    "encrypt": false,
+    "trustServerCertificate": true
+  },
+  "kiosk": {
+    "pcId": 1,
+    "photoDirectory": "\\\\192.168.2.100\\Sys\\Usuarios\\Nomina\\FOTOS\\Empleados",
+    "timezone": "America/Managua",
+    "autoRegisterDelayMs": 250,
+    "confirmationDurationMs": 1500,
+    "faceMatchThreshold": 0.52,
+    "faceRequiredMatches": 3,
+    "receiptPrinterName": "EPSON TM-T20II Receipt",
+    "receiptPrinterModel": "M267D",
+    "receiptPaperWidthMm": 76,
+    "receiptSilentPrint": true,
+    "receiptRawCutPaper": true
+  },
+  "api": {
+    "apiKey": "CAMBIAR_API_KEY"
+  },
+  "auth": {
+    "rrhhUser": "rrhh",
+    "rrhhPassword": "rrhh2026*",
+    "tiAdminUser": "tiadmin",
+    "tiAdminPassword": "t14dm1n2026*"
+  },
+  "smtp": {
+    "host": "smtp-mail.outlook.com",
+    "port": 587,
+    "secure": false,
+    "user": "rrhh@sanmartin.com.ni",
+    "password": "CONTRASEÑA_DEL_CORREO",
+    "from": "rrhh@sanmartin.com.ni"
+  }
+}
